@@ -1,5 +1,4 @@
-// Replace this URL with your Google Apps Script web app URL
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyZm_OINiHC1NmpTTcdrsMWXeRwmK93Zi1cKsFK9OPqYig9iZk4TiUp_6GjSym-0CnB/exec';
+const scriptURL = 'https://script.google.com/macros/s/AKfycbyZm_OINiHC1NmpTTcdrsMWXeRwmK93Zi1cKsFK9OPqYig9iZk4TiUp_6GjSym-0CnB/exec';
 
 // Webex redirect URL
 const WEBEX_REDIRECT_URL = 'https://amazon.webex.com/weblink/register/red490fe6feb78254bde9e16e7b9ed969';
@@ -89,107 +88,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function submitToGoogleSheets(formData) {
-        return new Promise((resolve, reject) => {
-            console.log('Starting form submission to Google Sheets...');
-            
-            try {
-                // Method 1: Try fetch with no-cors first (for CORS issues)
-                const fieldMapping = {
-                    'Name': formData.get('name'),
-                    'Roll Number': formData.get('rollNumber'), 
-                    'Section': formData.get('classSection') || '',
-                    'Year': formData.get('year'),
-                    'Branch': formData.get('branch'),
-                    'College Email': formData.get('collegeEmail'),
-                    'Join WhatsApp Group': formData.get('joinGroup')
-                };
-
-                console.log('Form data to submit:', fieldMapping);
-
-                // Try fetch method first
-                const urlEncodedData = new URLSearchParams(fieldMapping).toString();
-                
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    mode: 'no-cors',
-                    body: urlEncodedData
-                }).then(() => {
-                    console.log('Fetch submission completed (no-cors mode)');
-                    resolve({ success: true });
-                }).catch((fetchError) => {
-                    console.log('Fetch failed, trying iframe method...', fetchError);
-                    
-                    // Fallback to iframe method
-                    const iframe = document.createElement('iframe');
-                    iframe.name = 'hidden_iframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-
-                    // Create a temporary form for submission
-                    const tempForm = document.createElement('form');
-                    tempForm.method = 'POST';
-                    tempForm.action = GOOGLE_SCRIPT_URL;
-                    tempForm.style.display = 'none';
-                    tempForm.target = 'hidden_iframe';
-
-                    Object.keys(fieldMapping).forEach(key => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = key;
-                        input.value = fieldMapping[key] || '';
-                        tempForm.appendChild(input);
-                    });
-
-                    document.body.appendChild(tempForm);
-                    
-                    // Handle iframe events
-                    let submitted = false;
-                    
-                    iframe.onload = function() {
-                        if (!submitted) {
-                            submitted = true;
-                            console.log('Iframe submission completed');
-                            setTimeout(() => {
-                                if (document.body.contains(tempForm)) {
-                                    document.body.removeChild(tempForm);
-                                }
-                                if (document.body.contains(iframe)) {
-                                    document.body.removeChild(iframe);
-                                }
-                            }, 1000);
-                            resolve({ success: true });
-                        }
-                    };
-
-                    // Submit the form to iframe
-                    tempForm.submit();
-
-                    // Timeout after 15 seconds
-                    setTimeout(() => {
-                        if (!submitted) {
-                            submitted = true;
-                            console.log('Assuming success after timeout');
-                            if (document.body.contains(tempForm)) {
-                                document.body.removeChild(tempForm);
-                            }
-                            if (document.body.contains(iframe)) {
-                                document.body.removeChild(iframe);
-                            }
-                            resolve({ success: true });
-                        }
-                    }, 15000);
-                });
-                
-            } catch (error) {
-                console.error('Error in submitToGoogleSheets:', error);
-                reject(error);
-            }
-        });
-    }
 
 
     // Real-time validation
@@ -253,11 +151,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Form submission
-    form.addEventListener('submit', async function(e) {
+    // Form submission using the specified approach
+    const form = document.forms['submit-to-google-sheet'];
+    form.addEventListener('submit', e => {
         e.preventDefault();
 
-        // Get form data
+        // Get form data for validation
         const formData = new FormData(form);
         
         // Validate all fields
@@ -329,11 +228,10 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.style.display = 'none';
         errorMessage.textContent = '';
 
-        try {
-            console.log('Form validation passed, attempting submission...');
-            
-            await submitToGoogleSheets(formData);
-            console.log('Form submitted successfully to Google Sheets');
+        // Submit using the specified approach
+        fetch(scriptURL, { method: 'POST', body: new FormData(form)})
+        .then(response => {
+            console.log('Success!', response);
             
             // Show success message
             loadingMessage.style.display = 'none';
@@ -343,14 +241,14 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => {
                 window.location.href = WEBEX_REDIRECT_URL;
             }, 3000);
-
-        } catch (error) {
-            console.error('Form submission failed:', error);
+        })
+        .catch(error => {
+            console.error('Error!', error.message);
             loadingMessage.style.display = 'none';
             errorMessage.textContent = 'Submission failed. Please try again or contact support.';
             errorMessage.style.display = 'block';
             checkSubmitButton(); // Re-enable button based on group selection
-        }
+        });
     });
 
     // Clear messages when user starts typing
@@ -368,6 +266,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add debugging info for production
     if (window.location.hostname === 'csimiet.github.io') {
         console.log('Running on GitHub Pages');
-        console.log('Google Script URL:', GOOGLE_SCRIPT_URL);
+        console.log('Script URL:', scriptURL);
     }
 });
