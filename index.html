@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AWS Women Mentorship - Registration</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="header">
+        <div class="logo-container">
+            <img src="csi-logo.png" alt="CSI Logo" class="logo logo-left">
+            <img src="aws.webp" alt="AWS Logo" class="logo logo-center">
+            <img src="miet.jpg" alt="MIET Logo" class="logo logo-right">
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="welcome-section">
+            <h1>AWS Women Mentorship - Registration</h1>
+            <p class="welcome-text">Welcome to the registration for the AWS Women Mentorship Online Session.</p>
+            
+
+            <div class="event-details">
+                <h3>Event Details:</h3>
+                <div class="detail-item">
+                    <span class="icon">📅</span>
+                    <span><strong>Date:</strong> September 10, 2025</span>
+                </div>
+                <div class="detail-item">
+                    <span class="icon">⏰</span>
+                    <span><strong>Time:</strong> 1:30 – 2:30 PM (IST)</span>
+                </div>
+                <div class="detail-item">
+                    <span class="icon">📩</span>
+                    <span><strong>Contact:</strong> csi@miet.ac.in</span>
+                </div>
+            </div>
+
+            <p class="cooperation-text">Thank you for your cooperation. We look forward to your participation! 🌟</p>
+            
+            <div class="ps-section">
+                <h4>P.S. Attending the Mentorship Program in Seminar Hall</h4>
+                <p>You have the option to join us for the AWS Webinar in the Seminar Hall on 10th September along with other students. If you attend in person, you will be provided with attendance for your lecture.</p>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="registrationForm">
+                <div class="form-group">
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" name="name" required>
+                    <span class="error" id="nameError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="rollNumber">Roll Number *</label>
+                    <input type="text" id="rollNumber" name="rollNumber" required>
+                    <span class="error" id="rollNumberError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="classSection">Section</label>
+                    <input type="text" id="classSection" name="classSection">
+                    <span class="error" id="classSectionError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="year">Year *</label>
+                    <select id="year" name="year" required>
+                        <option value="">Select Year</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                    </select>
+                    <span class="error" id="yearError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="branch">Branch *</label>
+                    <input type="text" id="branch" name="branch" required>
+                    <span class="error" id="branchError"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="collegeEmail">College Email *</label>
+                    <input type="email" id="collegeEmail" name="collegeEmail" required placeholder="yourname@miet.ac.in">
+                    <span class="error" id="collegeEmailError"></span>
+                </div>
+
+                <div class="whatsapp-section">
+                    <h3>Stay Updated!</h3>
+                    <p>Join our official WhatsApp group for all details, updates, and announcements about the AWS Webinar (10th Sept). Don't miss out! 🚀</p>
+                    <a href="https://chat.whatsapp.com/DK8bpU5UHlk3bRUJ8qZ1dH" target="_blank" class="whatsapp-link">
+                        📱 Join WhatsApp Group
+                    </a>
+                </div>
+
+                <div class="form-group">
+                    <label>Do you join the WhatsApp group for updates? *</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="joinGroup" value="yes" required>
+                            Yes
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="joinGroup" value="no" required>
+                            No
+                        </label>
+                    </div>
+                    <span class="error" id="joinGroupError"></span>
+                </div>
+
+                <button type="submit" id="submitBtn">Submit Registration</button>
+                <div id="loadingMessage" class="loading">Submitting...</div>
+                <div id="successMessage" class="success">Form submitted successfully! Redirecting...</div>
+                <div id="errorMessage" class="error"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
