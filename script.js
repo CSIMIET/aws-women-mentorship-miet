@@ -94,12 +94,18 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Starting form submission to Google Sheets...');
             
             try {
+                // Create a hidden iframe for submission
+                const iframe = document.createElement('iframe');
+                iframe.name = 'hidden_iframe';
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+
                 // Create a temporary form for submission
                 const tempForm = document.createElement('form');
                 tempForm.method = 'POST';
                 tempForm.action = GOOGLE_SCRIPT_URL;
                 tempForm.style.display = 'none';
-                tempForm.target = '_blank'; // Open in new tab for debugging
+                tempForm.target = 'hidden_iframe'; // Submit to hidden iframe instead of new tab
 
                 // Add form data as hidden inputs - match the field names expected by your Apps Script
                 const fieldMapping = {
@@ -124,64 +130,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 document.body.appendChild(tempForm);
                 
-                // For production deployment, we'll use a different approach
-                // Submit the form in a new tab temporarily for debugging
-                if (window.location.hostname === 'csimiet.github.io') {
-                    console.log('Production deployment detected, using direct form submission');
-                    tempForm.target = '_blank';
-                    tempForm.submit();
-                    
-                    // Clean up and resolve after a delay
-                    setTimeout(() => {
-                        if (document.body.contains(tempForm)) {
-                            document.body.removeChild(tempForm);
-                        }
-                        resolve({ success: true });
-                    }, 2000);
-                } else {
-                    // Local development - use iframe method
-                    console.log('Local development detected, using iframe method');
-                    
-                    // Create hidden iframe for submission
-                    const iframe = document.createElement('iframe');
-                    iframe.name = 'hidden_iframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-
-                    tempForm.target = 'hidden_iframe';
-
-                    // Handle iframe load event
-                    iframe.onload = function() {
-                        console.log('Iframe loaded successfully');
-                        // Clean up
-                        setTimeout(() => {
-                            if (document.body.contains(tempForm)) {
-                                document.body.removeChild(tempForm);
-                            }
-                            if (document.body.contains(iframe)) {
-                                document.body.removeChild(iframe);
-                            }
-                        }, 1000);
-                        resolve({ success: true });
-                    };
-
-                    // Handle iframe error
-                    iframe.onerror = function() {
-                        console.error('Iframe submission failed');
-                        // Clean up
-                        if (document.body.contains(tempForm)) {
-                            document.body.removeChild(tempForm);
-                        }
-                        if (document.body.contains(iframe)) {
-                            document.body.removeChild(iframe);
-                        }
-                        reject(new Error('Submission failed'));
-                    };
-
-                    // Submit the form
-                    tempForm.submit();
-
-                    // Timeout after 5 seconds - assume success
+                // Handle iframe load event
+                iframe.onload = function() {
+                    console.log('Form submitted successfully to Google Sheets');
+                    // Clean up
                     setTimeout(() => {
                         if (document.body.contains(tempForm)) {
                             document.body.removeChild(tempForm);
@@ -189,9 +141,36 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (document.body.contains(iframe)) {
                             document.body.removeChild(iframe);
                         }
-                        resolve({ success: true }); // Assume success on timeout
-                    }, 5000);
-                }
+                    }, 1000);
+                    resolve({ success: true });
+                };
+
+                // Handle iframe error
+                iframe.onerror = function() {
+                    console.error('Iframe submission failed');
+                    // Clean up
+                    if (document.body.contains(tempForm)) {
+                        document.body.removeChild(tempForm);
+                    }
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                    reject(new Error('Submission failed'));
+                };
+
+                // Submit the form
+                tempForm.submit();
+
+                // Timeout after 10 seconds - assume success for Google Apps Script
+                setTimeout(() => {
+                    if (document.body.contains(tempForm)) {
+                        document.body.removeChild(tempForm);
+                    }
+                    if (document.body.contains(iframe)) {
+                        document.body.removeChild(iframe);
+                    }
+                    resolve({ success: true }); // Assume success on timeout
+                }, 10000);
                 
             } catch (error) {
                 console.error('Error in submitToGoogleSheets:', error);
@@ -200,43 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Alternative submission method for production
-    function submitViaFetch(formData) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                console.log('Trying fetch method as fallback...');
-                
-                const fieldMapping = {
-                    'Name': formData.get('name'),
-                    'Roll Number': formData.get('rollNumber'), 
-                    'Section': formData.get('classSection') || '',
-                    'Year': formData.get('year'),
-                    'Branch': formData.get('branch'),
-                    'College Email': formData.get('collegeEmail'),
-                    'Join WhatsApp Group': formData.get('joinGroup')
-                };
-
-                // Create URL encoded form data
-                const urlEncodedData = new URLSearchParams(fieldMapping).toString();
-                
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    mode: 'no-cors', // Important for cross-origin requests
-                    body: urlEncodedData
-                });
-
-                console.log('Fetch completed (no-cors mode)');
-                resolve({ success: true });
-                
-            } catch (error) {
-                console.error('Fetch method failed:', error);
-                reject(error);
-            }
-        });
-    }
 
     // Real-time validation
     document.getElementById('name').addEventListener('blur', function() {
@@ -378,27 +320,20 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             console.log('Form validation passed, attempting submission...');
             
-            // Try primary method first
-            try {
-                await submitToGoogleSheets(formData);
-                console.log('Primary submission method succeeded');
-            } catch (primaryError) {
-                console.log('Primary method failed, trying fetch fallback...');
-                await submitViaFetch(formData);
-                console.log('Fallback submission method succeeded');
-            }
+            await submitToGoogleSheets(formData);
+            console.log('Form submitted successfully to Google Sheets');
             
             // Show success message
             loadingMessage.style.display = 'none';
             successMessage.style.display = 'block';
             
-            // Redirect after 3 seconds (longer for production)
+            // Redirect after 3 seconds
             setTimeout(() => {
                 window.location.href = WEBEX_REDIRECT_URL;
             }, 3000);
 
         } catch (error) {
-            console.error('All submission methods failed:', error);
+            console.error('Form submission failed:', error);
             loadingMessage.style.display = 'none';
             errorMessage.textContent = 'Submission failed. Please try again or contact support.';
             errorMessage.style.display = 'block';
