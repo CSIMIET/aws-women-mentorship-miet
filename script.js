@@ -94,20 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Starting form submission to Google Sheets...');
             
             try {
-                // Create a hidden iframe for submission
-                const iframe = document.createElement('iframe');
-                iframe.name = 'hidden_iframe';
-                iframe.style.display = 'none';
-                document.body.appendChild(iframe);
-
-                // Create a temporary form for submission
-                const tempForm = document.createElement('form');
-                tempForm.method = 'POST';
-                tempForm.action = GOOGLE_SCRIPT_URL;
-                tempForm.style.display = 'none';
-                tempForm.target = 'hidden_iframe'; // Submit to hidden iframe instead of new tab
-
-                // Add form data as hidden inputs - match the field names expected by your Apps Script
+                // Method 1: Try fetch with no-cors first (for CORS issues)
                 const fieldMapping = {
                     'Name': formData.get('name'),
                     'Roll Number': formData.get('rollNumber'), 
@@ -120,57 +107,82 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 console.log('Form data to submit:', fieldMapping);
 
-                Object.keys(fieldMapping).forEach(key => {
-                    const input = document.createElement('input');
-                    input.type = 'hidden';
-                    input.name = key;
-                    input.value = fieldMapping[key] || '';
-                    tempForm.appendChild(input);
-                });
-
-                document.body.appendChild(tempForm);
+                // Try fetch method first
+                const urlEncodedData = new URLSearchParams(fieldMapping).toString();
                 
-                // Handle iframe load event
-                iframe.onload = function() {
-                    console.log('Form submitted successfully to Google Sheets');
-                    // Clean up
-                    setTimeout(() => {
-                        if (document.body.contains(tempForm)) {
-                            document.body.removeChild(tempForm);
-                        }
-                        if (document.body.contains(iframe)) {
-                            document.body.removeChild(iframe);
-                        }
-                    }, 1000);
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    mode: 'no-cors',
+                    body: urlEncodedData
+                }).then(() => {
+                    console.log('Fetch submission completed (no-cors mode)');
                     resolve({ success: true });
-                };
+                }).catch((fetchError) => {
+                    console.log('Fetch failed, trying iframe method...', fetchError);
+                    
+                    // Fallback to iframe method
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'hidden_iframe';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
 
-                // Handle iframe error
-                iframe.onerror = function() {
-                    console.error('Iframe submission failed');
-                    // Clean up
-                    if (document.body.contains(tempForm)) {
-                        document.body.removeChild(tempForm);
-                    }
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                    reject(new Error('Submission failed'));
-                };
+                    // Create a temporary form for submission
+                    const tempForm = document.createElement('form');
+                    tempForm.method = 'POST';
+                    tempForm.action = GOOGLE_SCRIPT_URL;
+                    tempForm.style.display = 'none';
+                    tempForm.target = 'hidden_iframe';
 
-                // Submit the form
-                tempForm.submit();
+                    Object.keys(fieldMapping).forEach(key => {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = fieldMapping[key] || '';
+                        tempForm.appendChild(input);
+                    });
 
-                // Timeout after 10 seconds - assume success for Google Apps Script
-                setTimeout(() => {
-                    if (document.body.contains(tempForm)) {
-                        document.body.removeChild(tempForm);
-                    }
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                    resolve({ success: true }); // Assume success on timeout
-                }, 10000);
+                    document.body.appendChild(tempForm);
+                    
+                    // Handle iframe events
+                    let submitted = false;
+                    
+                    iframe.onload = function() {
+                        if (!submitted) {
+                            submitted = true;
+                            console.log('Iframe submission completed');
+                            setTimeout(() => {
+                                if (document.body.contains(tempForm)) {
+                                    document.body.removeChild(tempForm);
+                                }
+                                if (document.body.contains(iframe)) {
+                                    document.body.removeChild(iframe);
+                                }
+                            }, 1000);
+                            resolve({ success: true });
+                        }
+                    };
+
+                    // Submit the form to iframe
+                    tempForm.submit();
+
+                    // Timeout after 15 seconds
+                    setTimeout(() => {
+                        if (!submitted) {
+                            submitted = true;
+                            console.log('Assuming success after timeout');
+                            if (document.body.contains(tempForm)) {
+                                document.body.removeChild(tempForm);
+                            }
+                            if (document.body.contains(iframe)) {
+                                document.body.removeChild(iframe);
+                            }
+                            resolve({ success: true });
+                        }
+                    }, 15000);
+                });
                 
             } catch (error) {
                 console.error('Error in submitToGoogleSheets:', error);
