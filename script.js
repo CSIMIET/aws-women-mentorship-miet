@@ -26,8 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function validateClassSection(classSection) {
-        // Optional field - return true if empty or if has valid content
-        return classSection.trim().length === 0 || classSection.trim().length >= 2;
+        // Optional field - always valid (no restrictions)
+        return true;
     }
 
     function validateYear(year) {
@@ -259,11 +259,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('classSection').addEventListener('blur', function() {
         const classSection = this.value;
-        if (!validateClassSection(classSection)) {
-            showError('classSection', 'Please enter a valid section (minimum 2 characters)');
-        } else {
-            clearError('classSection');
-        }
+        // Section is optional - always clear any errors
+        clearError('classSection');
     });
 
     document.getElementById('year').addEventListener('change', function() {
@@ -333,12 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
             clearError('rollNumber');
         }
 
-        if (!validateClassSection(classSection)) {
-            showError('classSection', 'Please enter a valid section (minimum 2 characters)');
-            isValid = false;
-        } else {
-            clearError('classSection');
-        }
+        // Section is optional - no validation needed
+        clearError('classSection');
 
         if (!validateYear(year)) {
             showError('year', 'Please select a valid year');
