@@ -91,79 +91,150 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function submitToGoogleSheets(formData) {
         return new Promise((resolve, reject) => {
-            // Create a temporary form for submission
-            const tempForm = document.createElement('form');
-            tempForm.method = 'POST';
-            tempForm.action = GOOGLE_SCRIPT_URL;
-            tempForm.style.display = 'none';
+            console.log('Starting form submission to Google Sheets...');
+            
+            try {
+                // Create a temporary form for submission
+                const tempForm = document.createElement('form');
+                tempForm.method = 'POST';
+                tempForm.action = GOOGLE_SCRIPT_URL;
+                tempForm.style.display = 'none';
+                tempForm.target = '_blank'; // Open in new tab for debugging
 
-            // Add form data as hidden inputs - match the field names expected by your Apps Script
-            const fieldMapping = {
-                'Name': formData.get('name'),
-                'Roll Number': formData.get('rollNumber'), 
-                'Section': formData.get('classSection') || '',
-                'Year': formData.get('year'),
-                'Branch': formData.get('branch'),
-                'College Email': formData.get('collegeEmail'),
-                'Join WhatsApp Group': formData.get('joinGroup')
-            };
+                // Add form data as hidden inputs - match the field names expected by your Apps Script
+                const fieldMapping = {
+                    'Name': formData.get('name'),
+                    'Roll Number': formData.get('rollNumber'), 
+                    'Section': formData.get('classSection') || '',
+                    'Year': formData.get('year'),
+                    'Branch': formData.get('branch'),
+                    'College Email': formData.get('collegeEmail'),
+                    'Join WhatsApp Group': formData.get('joinGroup')
+                };
 
-            Object.keys(fieldMapping).forEach(key => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = key;
-                input.value = fieldMapping[key] || '';
-                tempForm.appendChild(input);
-            });
+                console.log('Form data to submit:', fieldMapping);
 
-            // Create hidden iframe for submission
-            const iframe = document.createElement('iframe');
-            iframe.name = 'hidden_iframe';
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
+                Object.keys(fieldMapping).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = fieldMapping[key] || '';
+                    tempForm.appendChild(input);
+                });
 
-            tempForm.target = 'hidden_iframe';
-            document.body.appendChild(tempForm);
+                document.body.appendChild(tempForm);
+                
+                // For production deployment, we'll use a different approach
+                // Submit the form in a new tab temporarily for debugging
+                if (window.location.hostname === 'csimiet.github.io') {
+                    console.log('Production deployment detected, using direct form submission');
+                    tempForm.target = '_blank';
+                    tempForm.submit();
+                    
+                    // Clean up and resolve after a delay
+                    setTimeout(() => {
+                        if (document.body.contains(tempForm)) {
+                            document.body.removeChild(tempForm);
+                        }
+                        resolve({ success: true });
+                    }, 2000);
+                } else {
+                    // Local development - use iframe method
+                    console.log('Local development detected, using iframe method');
+                    
+                    // Create hidden iframe for submission
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'hidden_iframe';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
 
-            // Handle iframe load event
-            iframe.onload = function() {
-                // Clean up
-                setTimeout(() => {
-                    if (document.body.contains(tempForm)) {
-                        document.body.removeChild(tempForm);
-                    }
-                    if (document.body.contains(iframe)) {
-                        document.body.removeChild(iframe);
-                    }
-                }, 1000);
+                    tempForm.target = 'hidden_iframe';
+
+                    // Handle iframe load event
+                    iframe.onload = function() {
+                        console.log('Iframe loaded successfully');
+                        // Clean up
+                        setTimeout(() => {
+                            if (document.body.contains(tempForm)) {
+                                document.body.removeChild(tempForm);
+                            }
+                            if (document.body.contains(iframe)) {
+                                document.body.removeChild(iframe);
+                            }
+                        }, 1000);
+                        resolve({ success: true });
+                    };
+
+                    // Handle iframe error
+                    iframe.onerror = function() {
+                        console.error('Iframe submission failed');
+                        // Clean up
+                        if (document.body.contains(tempForm)) {
+                            document.body.removeChild(tempForm);
+                        }
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe);
+                        }
+                        reject(new Error('Submission failed'));
+                    };
+
+                    // Submit the form
+                    tempForm.submit();
+
+                    // Timeout after 5 seconds - assume success
+                    setTimeout(() => {
+                        if (document.body.contains(tempForm)) {
+                            document.body.removeChild(tempForm);
+                        }
+                        if (document.body.contains(iframe)) {
+                            document.body.removeChild(iframe);
+                        }
+                        resolve({ success: true }); // Assume success on timeout
+                    }, 5000);
+                }
+                
+            } catch (error) {
+                console.error('Error in submitToGoogleSheets:', error);
+                reject(error);
+            }
+        });
+    }
+
+    // Alternative submission method for production
+    function submitViaFetch(formData) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log('Trying fetch method as fallback...');
+                
+                const fieldMapping = {
+                    'Name': formData.get('name'),
+                    'Roll Number': formData.get('rollNumber'), 
+                    'Section': formData.get('classSection') || '',
+                    'Year': formData.get('year'),
+                    'Branch': formData.get('branch'),
+                    'College Email': formData.get('collegeEmail'),
+                    'Join WhatsApp Group': formData.get('joinGroup')
+                };
+
+                // Create URL encoded form data
+                const urlEncodedData = new URLSearchParams(fieldMapping).toString();
+                
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    mode: 'no-cors', // Important for cross-origin requests
+                    body: urlEncodedData
+                });
+
+                console.log('Fetch completed (no-cors mode)');
                 resolve({ success: true });
-            };
-
-            // Handle iframe error
-            iframe.onerror = function() {
-                // Clean up
-                if (document.body.contains(tempForm)) {
-                    document.body.removeChild(tempForm);
-                }
-                if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                }
-                reject(new Error('Submission failed'));
-            };
-
-            // Submit the form
-            tempForm.submit();
-
-            // Timeout after 5 seconds - assume success
-            setTimeout(() => {
-                if (document.body.contains(tempForm)) {
-                    document.body.removeChild(tempForm);
-                }
-                if (document.body.contains(iframe)) {
-                    document.body.removeChild(iframe);
-                }
-                resolve({ success: true }); // Assume success on timeout
-            }, 5000);
+                
+            } catch (error) {
+                console.error('Fetch method failed:', error);
+                reject(error);
+            }
         });
     }
 
@@ -312,22 +383,31 @@ document.addEventListener('DOMContentLoaded', function() {
         errorMessage.textContent = '';
 
         try {
-            // Submit to Google Sheets using form submission (bypasses CORS)
-            await submitToGoogleSheets(formData);
+            console.log('Form validation passed, attempting submission...');
+            
+            // Try primary method first
+            try {
+                await submitToGoogleSheets(formData);
+                console.log('Primary submission method succeeded');
+            } catch (primaryError) {
+                console.log('Primary method failed, trying fetch fallback...');
+                await submitViaFetch(formData);
+                console.log('Fallback submission method succeeded');
+            }
             
             // Show success message
             loadingMessage.style.display = 'none';
             successMessage.style.display = 'block';
             
-            // Redirect after 2 seconds
+            // Redirect after 3 seconds (longer for production)
             setTimeout(() => {
                 window.location.href = WEBEX_REDIRECT_URL;
-            }, 2000);
+            }, 3000);
 
         } catch (error) {
-            console.error('Submission error:', error);
+            console.error('All submission methods failed:', error);
             loadingMessage.style.display = 'none';
-            errorMessage.textContent = 'Submission failed. Please try again.';
+            errorMessage.textContent = 'Submission failed. Please try again or contact support.';
             errorMessage.style.display = 'block';
             checkSubmitButton(); // Re-enable button based on group selection
         }
@@ -344,4 +424,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Add debugging info for production
+    if (window.location.hostname === 'csimiet.github.io') {
+        console.log('Running on GitHub Pages');
+        console.log('Google Script URL:', GOOGLE_SCRIPT_URL);
+    }
 });

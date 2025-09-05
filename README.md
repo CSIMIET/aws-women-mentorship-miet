@@ -36,7 +36,7 @@ Join our official WhatsApp group for:
 - Easy query resolution  
 - Feedback & resources  
 
-🔗 [WhatsApp Group Link](#)  
+🔗 [WhatsApp Group Link](https://chat.whatsapp.com/DK8bpU5UHlk3bRUJ8qZ1dH)  
 
 ---
 
